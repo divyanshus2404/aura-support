@@ -7,6 +7,7 @@ import Pricing from './components/Pricing';
 import Chatbot from './components/Chatbot';
 import Footer from './components/Footer';
 import Dashboard from './components/Dashboard';
+import Onboarding from './components/Onboarding';
 
 const LandingPage = () => (
   <>
@@ -39,6 +40,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/onboarding" element={<Onboarding />} />
       </Routes>
     </Router>
   );

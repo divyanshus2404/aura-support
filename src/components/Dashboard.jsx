@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Database, MessageSquare, Settings, UploadCloud, Users, LogOut, Search, Sliders, Loader } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import './Dashboard.css';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,8 @@ const Dashboard = () => {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert('Check your email for the login link!');
+        // Mocking immediate login for demo, redirect to onboarding
+        navigate('/onboarding');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
