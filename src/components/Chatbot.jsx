@@ -25,7 +25,7 @@ const Chatbot = () => {
     scrollToBottom();
   }, [messages, isOpen, isTyping]);
 
-  const handleSend = (text) => {
+  const handleSend = async (text) => {
     if (!text.trim()) return;
     
     // Add user message
@@ -33,24 +33,34 @@ const Chatbot = () => {
     setInput("");
     setIsTyping(true);
 
-    // Simulate bot thinking and replying
-    setTimeout(() => {
-      let reply = "I'm a demo bot, but I can tell you we are awesome! Please book a demo.";
-      const lowerText = text.toLowerCase();
+    try {
+      // Try to call the real backend LLM
+      const response = await fetch('http://localhost:5000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, knowledgeBaseContext: "Pricing: $19/mo, $190/yr. WhatsApp is supported." })
+      });
       
-      if (lowerText.includes("pricing") || lowerText.includes("plan") || lowerText.includes("cost")) {
-        reply = "We offer Monthly, Yearly, and Custom Days plans. Our starter plan begins at $19/mo. Check the Pricing section for more details!";
-      } else if (lowerText.includes("whatsapp")) {
-        reply = "Yes! We fully support WhatsApp integration on our Pro plan and above. It syncs directly with your web dashboard.";
-      } else if (lowerText.includes("free trial") || lowerText.includes("free")) {
-        reply = "We don't offer a traditional free trial, but you can book a demo, and we can set you up with a test environment!";
-      } else if (lowerText.includes("product") || lowerText.includes("available")) {
-        reply = "Aura can sync with your inventory to let customers know if products are in stock!";
-      }
-
+      const data = await response.json();
+      
       setIsTyping(false);
-      setMessages(prev => [...prev, { text: reply, isBot: true }]);
-    }, 1500);
+      setMessages(prev => [...prev, { text: data.reply || "Error: Empty response", isBot: true }]);
+
+    } catch (error) {
+      console.warn("Backend not reachable. Falling back to mock logic.", error);
+      // Fallback if server is offline
+      setTimeout(() => {
+        let reply = "I'm a demo bot. Our backend server is currently offline or missing API keys.";
+        const lowerText = text.toLowerCase();
+        if (lowerText.includes("pricing") || lowerText.includes("plan")) {
+          reply = "We offer Monthly, Yearly, and Custom plans. Our starter plan begins at $19/mo.";
+        } else if (lowerText.includes("whatsapp")) {
+          reply = "Yes! We fully support WhatsApp integration.";
+        }
+        setIsTyping(false);
+        setMessages(prev => [...prev, { text: reply, isBot: true }]);
+      }, 1000);
+    }
   };
 
   return (

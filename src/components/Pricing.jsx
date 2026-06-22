@@ -27,6 +27,23 @@ const Pricing = () => {
     }
   };
 
+  const handleCheckout = async (planName) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId: planName }) // Passing name as mock ID
+      });
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url; // Redirect to Stripe
+      }
+    } catch (error) {
+      console.warn("Backend not reachable. Mocking Stripe redirect.");
+      alert(`[Mock] Redirecting to Stripe Checkout for ${planName}...`);
+    }
+  };
+
   return (
     <section id="pricing" className="pricing">
       <div className="container">
@@ -73,7 +90,10 @@ const Pricing = () => {
                   </li>
                 ))}
               </ul>
-              <button className={`btn ${plan.popular ? 'btn-primary' : 'btn-secondary'} full-width`}>
+              <button 
+                className={`btn ${plan.popular ? 'btn-primary' : 'btn-secondary'} full-width`}
+                onClick={() => handleCheckout(plan.name)}
+              >
                 Choose {plan.name}
               </button>
             </div>

@@ -208,3 +208,46 @@ section {
   margin: 0 auto 4rem auto;
   line-height: 1.7;
 }
+
+/* Dark Mode Theme */
+body.dark {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #171717;
+  --text-primary: #fcfcfd;
+  --text-secondary: #a3a3a3;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --card-bg: rgba(23, 23, 23, 0.8);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+body.dark .glass-panel {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+body.dark .btn-secondary {
+  background: rgba(38, 38, 38, 0.8);
+  color: white;
+  border-color: rgba(255,255,255,0.1);
+}
+
+body.dark .chatbot-window {
+  background: #171717;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+body.dark .chat-bubble.bot {
+  background: #262626;
+  color: white;
+  border-color: rgba(255,255,255,0.05);
+}
+
+body.dark .chatbot-messages, body.dark .chatbot-suggestions, body.dark .chatbot-input-area {
+  background: #171717;
+}
+
+body.dark .chatbot-input-area input {
+  background: #262626;
+  color: white;
+  border-color: rgba(255,255,255,0.1);
+}
