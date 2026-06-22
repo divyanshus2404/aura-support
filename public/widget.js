@@ -275,7 +275,7 @@
     showTyping();
 
     try {
-      // Use the server URL configured in the script tag, or fallback
+      // Use the server URL configured in the script tag, or fallback to the current origin if not provided
       const apiEndpoint = `${serverUrl}/api/chat`.replace(/([^:]\/)\/+/g, "$1"); // prevent double slashes
       
       const response = await fetch(apiEndpoint, {

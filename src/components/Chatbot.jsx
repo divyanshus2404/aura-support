@@ -34,8 +34,8 @@ const Chatbot = () => {
     setIsTyping(true);
 
     try {
-      // Try to call the real backend LLM
-      const response = await fetch('http://localhost:5000/api/chat', {
+      // Try to call the real backend LLM (now a serverless function)
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, knowledgeBaseContext: "Pricing: $19/mo, $190/yr. WhatsApp is supported." })
