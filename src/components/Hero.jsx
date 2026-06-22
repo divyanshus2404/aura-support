@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, MessageSquare, Smartphone } from 'lucide-react';
+import { ArrowRight, MessageSquare, Smartphone, BellRing } from 'lucide-react';
 import './Hero.css';
 
 const Hero = () => {
@@ -65,6 +65,24 @@ const Hero = () => {
                 <div className="chat-text">Yes! The Premium Plan is fully available. Would you like a link to upgrade?</div>
               </div>
             </div>
+            
+            {/* Floating Notification Cards */}
+            <div className="floating-card notification-1 glass-panel">
+              <BellRing size={16} color="var(--accent-primary)" />
+              <div className="notif-text">
+                <strong>New Sale</strong>
+                <span>via WhatsApp Chat</span>
+              </div>
+            </div>
+            
+            <div className="floating-card notification-2 glass-panel">
+               <MessageSquare size={16} color="var(--accent-secondary)" />
+              <div className="notif-text">
+                <strong>Query Resolved</strong>
+                <span>Instant response time</span>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

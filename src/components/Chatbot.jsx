@@ -8,6 +8,7 @@ const Chatbot = () => {
     { text: "Hi! I'm Aura. I can answer any questions about our product, pricing, or availability.", isBot: true }
   ]);
   const [input, setInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
   const preLoadedQuestions = [
@@ -22,7 +23,7 @@ const Chatbot = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isOpen]);
+  }, [messages, isOpen, isTyping]);
 
   const handleSend = (text) => {
     if (!text.trim()) return;
@@ -30,6 +31,7 @@ const Chatbot = () => {
     // Add user message
     setMessages(prev => [...prev, { text, isBot: false }]);
     setInput("");
+    setIsTyping(true);
 
     // Simulate bot thinking and replying
     setTimeout(() => {
@@ -46,8 +48,9 @@ const Chatbot = () => {
         reply = "Aura can sync with your inventory to let customers know if products are in stock!";
       }
 
+      setIsTyping(false);
       setMessages(prev => [...prev, { text: reply, isBot: true }]);
-    }, 1000);
+    }, 1500);
   };
 
   return (
@@ -76,6 +79,11 @@ const Chatbot = () => {
                 {msg.text}
               </div>
             ))}
+            {isTyping && (
+              <div className="chat-bubble bot typing-indicator">
+                <span></span><span></span><span></span>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
@@ -85,6 +93,7 @@ const Chatbot = () => {
                 key={index} 
                 className="suggestion-btn"
                 onClick={() => handleSend(q)}
+                disabled={isTyping}
               >
                 {q}
               </button>
@@ -98,8 +107,9 @@ const Chatbot = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
+              disabled={isTyping}
             />
-            <button className="send-btn" onClick={() => handleSend(input)}>
+            <button className="send-btn" onClick={() => handleSend(input)} disabled={isTyping}>
               <Send size={18} color="white" />
             </button>
           </div>
