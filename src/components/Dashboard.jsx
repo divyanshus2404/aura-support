@@ -173,6 +173,9 @@ const Dashboard = () => {
           <button className={`sidebar-link ${activeTab === 'knowledge' ? 'active' : ''}`} onClick={() => setActiveTab('knowledge')}>
             <UploadCloud size={18} /> Knowledge Base
           </button>
+          <button className={`sidebar-link ${activeTab === 'installation' ? 'active' : ''}`} onClick={() => setActiveTab('installation')}>
+            <Sliders size={18} /> Installation
+          </button>
           <button className={`sidebar-link ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
             <Settings size={18} /> Settings
           </button>
@@ -200,6 +203,35 @@ const Dashboard = () => {
                 </span>
               </div>
             ))}
+          </div>
+        )}
+
+        {activeTab === 'installation' && (
+          <div className="installation-section glass-panel" style={{padding: '3rem'}}>
+            <h3>Embed Your AI Agent</h3>
+            <p style={{color: 'var(--text-secondary)', marginBottom: '2rem'}}>
+              Copy and paste this snippet into the <code>&lt;head&gt;</code> or just before the closing <code>&lt;/body&gt;</code> tag of your website (Shopify, WordPress, Webflow, etc.).
+            </p>
+            
+            <div style={{background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', position: 'relative'}}>
+              <code style={{fontFamily: 'monospace', color: 'var(--text-primary)', wordBreak: 'break-all'}}>
+                &lt;script src="https://ai-support-saas-six.vercel.app/widget.js" data-client-id="{session.user.id}" defer&gt;&lt;/script&gt;
+              </code>
+              <button 
+                className="btn btn-secondary" 
+                style={{position: 'absolute', top: '1rem', right: '1rem'}}
+                onClick={() => {
+                  navigator.clipboard.writeText(`<script src="https://ai-support-saas-six.vercel.app/widget.js" data-client-id="${session.user.id}" defer></script>`);
+                  alert('Copied to clipboard!');
+                }}
+              >
+                Copy Code
+              </button>
+            </div>
+            
+            <div className="mt-2" style={{padding: '1rem', background: 'rgba(37, 99, 235, 0.1)', border: '1px solid rgba(37, 99, 235, 0.2)', borderRadius: '8px', color: 'var(--accent-primary)'}}>
+              <strong>Note:</strong> Our widget uses Shadow DOM technology. This means it is completely isolated and guaranteed not to conflict with your website's existing CSS or themes!
+            </div>
           </div>
         )}
 

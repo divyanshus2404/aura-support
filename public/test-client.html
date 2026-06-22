@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mock Client Website (Shopify/Wordpress)</title>
+  <style>
+    /* Intentionally terrible CSS to prove Shadow DOM works */
+    body {
+      background: #ffe4e1;
+      font-family: "Comic Sans MS", cursive;
+      padding: 50px;
+    }
+    button {
+      background: red !important;
+      color: yellow !important;
+      border: 5px solid green !important;
+      padding: 20px !important;
+      border-radius: 0 !important;
+    }
+    input {
+      background: black;
+      color: lime;
+      padding: 10px;
+      font-size: 24px;
+    }
+    div {
+      border: 2px dashed purple;
+    }
+  </style>
+</head>
+<body>
+
+  <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px;">
+    <h1>Welcome to ACME Shoes Store!</h1>
+    <p>This is a fake external website that simulates a client installing your widget.</p>
+    <p>Notice the terrible global CSS? Buttons are red/yellow, inputs are black/lime, and all divs have purple dashed borders.</p>
+    <button>Add to Cart</button>
+    <br><br>
+    <input type="text" value="Search products...">
+  </div>
+
+  <!-- The Aura Support Widget Injection -->
+  <!-- Note: This points to local widget.js for testing, but simulates the production snippet -->
+  <script src="/widget.js" data-client-id="TEST_CLIENT_123" data-server-url="http://localhost:5000" defer></script>
+
+</body>
+</html>
