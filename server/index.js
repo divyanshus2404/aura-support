@@ -52,7 +52,7 @@ app.post('/api/chat', async (req, res) => {
 // --- 2. Stripe Checkout Session ---
 app.post('/api/create-checkout-session', async (req, res) => {
   try {
-    const { planId, successUrl, cancelUrl } = req.body;
+    const { planId, successUrl, cancelUrl, userId } = req.body;
 
     if (!process.env.STRIPE_SECRET_KEY) {
       return res.json({ url: "https://demo.stripe.com/test-checkout-session" }); // mock
@@ -62,11 +62,12 @@ app.post('/api/create-checkout-session', async (req, res) => {
       payment_method_types: ['card'],
       line_items: [
         {
-          price: planId, // Replace with actual Stripe Price ID
+          price: planId, // In production, this should map to actual Stripe Price ID like price_1Hh1...
           quantity: 1,
         },
       ],
       mode: 'subscription',
+      client_reference_id: userId, // Store the Supabase User ID to catch in webhook
       success_url: successUrl || 'http://localhost:5173/dashboard?success=true',
       cancel_url: cancelUrl || 'http://localhost:5173/#pricing',
     });
@@ -79,7 +80,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
 });
 
 // --- 3. Stripe Webhook ---
-app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -98,8 +99,12 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
   switch (event.type) {
     case 'checkout.session.completed':
       const session = event.data.object;
-      console.log('✅ Subscription successful for:', session.customer_email);
-      // TODO: Update Supabase DB with subscription status here
+      const userId = session.client_reference_id;
+      
+      console.log('✅ Subscription successful for user:', userId);
+      
+      // Here you would use the @supabase/supabase-js library to update the user's tier
+      // e.g. await supabase.from('business_profiles').update({ subscription_tier: 'pro' }).eq('id', userId);
       break;
     default:
       console.log(`Unhandled event type ${event.type}`);

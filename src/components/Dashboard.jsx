@@ -1,12 +1,104 @@
-import React, { useState } from 'react';
-import { Database, MessageSquare, Settings, UploadCloud, Users, LogOut, Search, Sliders } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Database, MessageSquare, Settings, UploadCloud, Users, LogOut, Search, Sliders, Loader } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Auth Form State
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [authError, setAuthError] = useState(null);
+  
+  // Knowledge Base State
+  const [files, setFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
-  // Mock data
+  useEffect(() => {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setAuthError(null);
+    
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        alert('Check your email for the login link!');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+    } catch (error) {
+      setAuthError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !session) return;
+    
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${session.user.id}/${fileName}`;
+
+      let { error: uploadError } = await supabase.storage
+        .from('knowledge_base')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+      
+      alert('File uploaded successfully! Your AI is retraining.');
+      fetchFiles();
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const fetchFiles = async () => {
+    if (!session) return;
+    const { data, error } = await supabase.storage
+      .from('knowledge_base')
+      .list(session.user.id + '/', { limit: 10 });
+      
+    if (data) setFiles(data);
+  };
+
+  useEffect(() => {
+    if (session && activeTab === 'knowledge') {
+      fetchFiles();
+    }
+  }, [session, activeTab]);
+
+  // Mock data for UI
   const stats = [
     { label: "Total Queries Handled", value: "1,248" },
     { label: "Sales Converted", value: "$4,290" },
@@ -17,20 +109,46 @@ const Dashboard = () => {
   const mockChatLogs = [
     { id: 1, user: "+1 (555) 019-2834", platform: "WhatsApp", intent: "Pricing Inquiry", time: "10 mins ago", status: "Resolved" },
     { id: 2, user: "guest_8912@web", platform: "Website", intent: "Product Availability", time: "1 hour ago", status: "Resolved" },
-    { id: 3, user: "+44 7700 900077", platform: "WhatsApp", intent: "Support / Refund", time: "3 hours ago", status: "Needs Human" },
   ];
 
-  if (!isLoggedIn) {
+  if (loading && !session) {
+    return <div className="login-screen"><Loader className="animate-spin" size={40} /></div>;
+  }
+
+  if (!session) {
     return (
       <div className="login-screen">
         <div className="glass-panel login-panel animate-fade-up">
-          <h2>Admin Login</h2>
-          <p>Sign in to manage your Aura AI Agent.</p>
-          <input type="email" placeholder="Email address" defaultValue="demo@acmecorp.com" />
-          <input type="password" placeholder="Password" defaultValue="password123" />
-          <button className="btn btn-primary full-width mt-2" onClick={() => setIsLoggedIn(true)}>Sign In</button>
-          <div className="demo-notice mt-2" style={{fontSize: '0.8rem'}}>
-            (Mock Login: Click Sign In to view the dashboard)
+          <h2>{isSignUp ? 'Create Account' : 'Admin Login'}</h2>
+          <p>{isSignUp ? 'Sign up to build your AI agent.' : 'Sign in to manage your Aura AI Agent.'}</p>
+          
+          <form onSubmit={handleAuth} style={{display:'flex', flexDirection:'column', gap:'1rem'}}>
+            <input 
+              type="email" 
+              placeholder="Email address" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required 
+            />
+            <input 
+              type="password" 
+              placeholder="Password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required 
+            />
+            {authError && <div style={{color:'#ef4444', fontSize:'0.85rem'}}>{authError}</div>}
+            
+            <button type="submit" className="btn btn-primary full-width" disabled={loading}>
+              {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+            </button>
+          </form>
+          
+          <div className="mt-2 text-center" style={{fontSize: '0.9rem'}}>
+            {isSignUp ? "Already have an account? " : "Don't have an account? "}
+            <button className="text-gradient" onClick={() => setIsSignUp(!isSignUp)} style={{background:'none', border:'none', cursor:'pointer', fontWeight:'bold'}}>
+              {isSignUp ? 'Log in' : 'Sign up'}
+            </button>
           </div>
         </div>
       </div>
@@ -42,8 +160,8 @@ const Dashboard = () => {
       {/* Sidebar */}
       <aside className="dashboard-sidebar glass-panel">
         <div className="sidebar-header">
-          <h3>ACME Corp</h3>
-          <span className="sidebar-badge">Pro Plan</span>
+          <h3 style={{wordBreak: 'break-all'}}>{session.user.email}</h3>
+          <span className="sidebar-badge">Business Account</span>
         </div>
         <nav className="sidebar-nav">
           <button className={`sidebar-link ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
@@ -60,7 +178,7 @@ const Dashboard = () => {
           </button>
         </nav>
         <div className="sidebar-footer">
-          <button className="sidebar-link" onClick={() => setIsLoggedIn(false)}>
+          <button className="sidebar-link" onClick={handleLogout}>
             <LogOut size={18} /> Log Out
           </button>
         </div>
@@ -89,18 +207,13 @@ const Dashboard = () => {
           <div className="chatlogs-section glass-panel">
             <div className="chatlogs-header">
               <h3>Recent Conversations</h3>
-              <div className="search-bar">
-                <Search size={16} />
-                <input type="text" placeholder="Search phone numbers or IDs..." />
-              </div>
             </div>
             <table className="chatlogs-table">
               <thead>
                 <tr>
                   <th>User</th>
                   <th>Platform</th>
-                  <th>Detected Intent</th>
-                  <th>Time</th>
+                  <th>Intent</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -110,16 +223,14 @@ const Dashboard = () => {
                     <td>{log.user}</td>
                     <td><span className={`platform-badge ${log.platform.toLowerCase()}`}>{log.platform}</span></td>
                     <td>{log.intent}</td>
-                    <td>{log.time}</td>
                     <td>
-                      <span className={`status-badge ${log.status === 'Resolved' ? 'success' : 'warning'}`}>
-                        {log.status}
-                      </span>
+                      <span className={`status-badge ${log.status === 'Resolved' ? 'success' : 'warning'}`}>{log.status}</span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <p className="mt-2" style={{fontSize:'0.8rem', color:'var(--text-secondary)'}}>* Logs are mocked until live traffic arrives.</p>
           </div>
         )}
 
@@ -127,17 +238,22 @@ const Dashboard = () => {
           <div className="knowledge-section glass-panel">
             <h3>Train Your AI Agent</h3>
             <p>Upload your company PDFs, return policies, and product lists.</p>
-            <div className="upload-box">
-              <UploadCloud size={40} color="var(--accent-primary)" />
-              <span>Drag & drop files here, or click to browse</span>
-              <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>Supports PDF, TXT, CSV (Max 10MB)</p>
-              <button className="btn btn-secondary mt-2">Select Files</button>
-            </div>
+            
+            <label className="upload-box">
+              {uploading ? <Loader className="animate-spin" size={40} color="var(--accent-primary)" /> : <UploadCloud size={40} color="var(--accent-primary)" />}
+              <span>{uploading ? 'Uploading...' : 'Click to browse files'}</span>
+              <p style={{fontSize: '0.8rem', color: 'var(--text-secondary)'}}>Supports PDF, TXT (Max 10MB)</p>
+              <input type="file" style={{display: 'none'}} onChange={handleFileUpload} disabled={uploading} accept=".pdf,.txt,.csv" />
+            </label>
+
             <div className="uploaded-files mt-2">
               <h4>Currently Trained On:</h4>
               <ul>
-                <li>📄 acme_return_policy.pdf <span className="text-green">Active</span></li>
-                <li>📄 Q3_inventory_list.csv <span className="text-green">Active</span></li>
+                {files.length === 0 ? <p style={{color:'var(--text-secondary)'}}>No files uploaded yet.</p> : 
+                  files.map((file, i) => (
+                    <li key={i}>📄 {file.name} <span className="text-green">Active</span></li>
+                  ))
+                }
               </ul>
             </div>
           </div>
@@ -147,27 +263,6 @@ const Dashboard = () => {
           <div className="settings-section glass-panel">
             <h3>Agent Settings</h3>
             <div className="settings-grid">
-              <div className="setting-item">
-                <div className="setting-info">
-                  <h4>Bot Personality</h4>
-                  <p>Choose how Aura talks to your customers.</p>
-                </div>
-                <select className="settings-select" defaultValue="friendly">
-                  <option value="professional">Strict & Professional</option>
-                  <option value="friendly">Friendly & Casual</option>
-                  <option value="sales">Aggressive Sales</option>
-                </select>
-              </div>
-              <div className="setting-item">
-                <div className="setting-info">
-                  <h4>Human Handoff</h4>
-                  <p>Transfer to a real agent if Aura can't answer.</p>
-                </div>
-                <label className="toggle-switch">
-                  <input type="checkbox" defaultChecked />
-                  <span className="slider"></span>
-                </label>
-              </div>
               <div className="setting-item">
                 <div className="setting-info">
                   <h4>WhatsApp Integration</h4>

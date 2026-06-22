@@ -1,30 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import './Pricing.css';
 
 const Pricing = () => {
-  const [billingCycle, setBillingCycle] = useState('monthly'); // monthly, yearly, weekly
+  const [billingCycle, setBillingCycle] = useState('yearly');
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUserId(session?.user?.id || null);
+    };
+    fetchSession();
+  }, []);
+
+  const plans = {
+    weekly: [
+      { name: "Starter", price: "$9", period: "/week", features: ["1,000 AI Queries", "Website Widget", "Standard Support"] },
+      { name: "Pro", price: "$29", period: "/week", features: ["10,000 AI Queries", "WhatsApp Integration", "Priority Support", "Knowledge Base Sync"], popular: true },
+      { name: "Enterprise", price: "$99", period: "/week", features: ["Unlimited Queries", "Custom Bot Personality", "Dedicated Success Manager"] }
+    ],
+    monthly: [
+      { name: "Starter", price: "$19", period: "/mo", features: ["1,000 AI Queries", "Website Widget", "Standard Support"] },
+      { name: "Pro", price: "$49", period: "/mo", features: ["10,000 AI Queries", "WhatsApp Integration", "Priority Support", "Knowledge Base Sync"], popular: true },
+      { name: "Enterprise", price: "$199", period: "/mo", features: ["Unlimited Queries", "Custom Bot Personality", "Dedicated Success Manager"] }
+    ],
+    yearly: [
+      { name: "Starter", price: "$190", period: "/yr", features: ["1,000 AI Queries/mo", "Website Widget", "Standard Support"] },
+      { name: "Pro", price: "$490", period: "/yr", features: ["10,000 AI Queries/mo", "WhatsApp Integration", "Priority Support", "Knowledge Base Sync"], popular: true },
+      { name: "Enterprise", price: "$1990", period: "/yr", features: ["Unlimited Queries/mo", "Custom Bot Personality", "Dedicated Success Manager"] }
+    ]
+  };
 
   const getPlans = () => {
-    switch(billingCycle) {
-      case 'yearly':
-        return [
-          { name: 'Starter', price: '$150', period: '/year', features: ['Web Support', '1,000 Queries/mo', 'Basic Analytics'] },
-          { name: 'Pro', price: '$190', period: '/year', features: ['WhatsApp + Web', 'Unlimited Queries', 'Product Sync', 'Advanced Analytics'], popular: true },
-          { name: 'Enterprise', price: 'Custom', period: '', features: ['Custom LLM Fine-tuning', 'Dedicated Account Manager', 'SLA Guarantee'] }
-        ];
-      case 'weekly':
-        return [
-          { name: 'Event Basic', price: '$9', period: '/week', features: ['Web Support', 'Ideal for short campaigns', 'Basic Analytics'] },
-          { name: 'Event Pro', price: '$19', period: '/week', features: ['WhatsApp + Web', 'Ideal for product launches', 'Product Sync'], popular: true },
-        ];
-      default: // monthly
-        return [
-          { name: 'Starter', price: '$19', period: '/mo', features: ['Web Support', '1,000 Queries/mo', 'Basic Analytics'] },
-          { name: 'Pro', price: '$49', period: '/mo', features: ['WhatsApp + Web', 'Unlimited Queries', 'Product Sync', 'Advanced Analytics'], popular: true },
-          { name: 'Enterprise', price: 'Custom', period: '', features: ['Custom LLM Fine-tuning', 'Dedicated Account Manager', 'SLA Guarantee'] }
-        ];
-    }
+    if (billingCycle === 'weekly') return plans.weekly;
+    if (billingCycle === 'yearly') return plans.yearly;
+    return plans.monthly;
   };
 
   const handleCheckout = async (planName) => {
@@ -32,7 +44,10 @@ const Pricing = () => {
       const response = await fetch('http://localhost:5000/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: planName }) // Passing name as mock ID
+        body: JSON.stringify({ 
+          planId: planName,
+          userId: userId // Pass real user ID to Stripe
+        })
       });
       const data = await response.json();
       if (data.url) {
