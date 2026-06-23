@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -6,21 +7,59 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, clientId, knowledgeBaseContext } = req.body;
+    const { message, clientId } = req.body;
     
     if (!process.env.GEMINI_API_KEY) {
       return res.status(200).json({ reply: "[Mock Backend] Gemini API Key is missing. Check Vercel Environment Variables." });
     }
 
+    // 1. Initialize Backend Supabase Client
+    const supabaseAdmin = createClient(
+      process.env.VITE_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || ''
+    );
+
+    let extractedKnowledge = "Aura SaaS Default Info.";
+
+    // 2. Fetch the client's uploaded files from Supabase Storage
+    if (clientId && process.env.VITE_SUPABASE_URL) {
+      try {
+        const { data: files } = await supabaseAdmin.storage
+          .from('knowledge_base')
+          .list(clientId + '/', { limit: 1 });
+
+        if (files && files.length > 0) {
+          const fileName = files[0].name;
+          // Download the file data
+          const { data: fileBlob } = await supabaseAdmin.storage
+            .from('knowledge_base')
+            .download(`${clientId}/${fileName}`);
+            
+          if (fileBlob) {
+            // Convert Blob to text (works for TXT, CSV, basic PDFs won't be perfectly parsed this way but it's a solid start)
+            extractedKnowledge = await fileBlob.text();
+            // Truncate to ensure we don't blow up the LLM token limit
+            extractedKnowledge = extractedKnowledge.substring(0, 15000); 
+          }
+        }
+      } catch (storageError) {
+        console.warn("Storage fetch failed:", storageError.message);
+      }
+    }
+
+    // 3. Generate AI Response
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-    // In a full production setup, you would use `clientId` to fetch the specific knowledge base from Supabase here.
     const prompt = `
       You are Aura, an AI sales and support agent for a business.
-      Business Context: ${knowledgeBaseContext || 'Aura SaaS Platform'}
+      Business Context extracted from their files:
+      ---
+      ${extractedKnowledge}
+      ---
       Customer Message: ${message}
-      Reply concisely and helpfully.
+      
+      Reply concisely, helpfully, and base your answer entirely on the Business Context provided above if applicable.
     `;
 
     const result = await model.generateContent(prompt);

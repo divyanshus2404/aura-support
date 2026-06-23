@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { createClient } from '@supabase/supabase-js';
 
 export const config = {
   api: {
@@ -13,6 +14,12 @@ export default async function handler(req, res) {
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  // Initialize Admin Supabase Client using Service Role Key (bypasses RLS)
+  const supabaseAdmin = createClient(
+    process.env.VITE_SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  );
 
   const buf = await new Promise((resolve, reject) => {
     let chunks = [];
@@ -41,7 +48,20 @@ export default async function handler(req, res) {
       const userId = session.client_reference_id;
       
       console.log('✅ Subscription successful for user:', userId);
-      // TODO: Update Supabase DB using a server-side Supabase client
+      
+      if (userId && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        // Upgrade the user's tier in the database!
+        const { error } = await supabaseAdmin
+          .from('business_profiles')
+          .update({ subscription_tier: 'pro' })
+          .eq('id', userId);
+          
+        if (error) {
+          console.error("Failed to update user tier:", error);
+        } else {
+          console.log("Successfully upgraded user tier to PRO in Supabase.");
+        }
+      }
       break;
     default:
       console.log(`Unhandled event type ${event.type}`);
