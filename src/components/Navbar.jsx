@@ -18,13 +18,13 @@ const Navbar = ({ isDarkMode, toggleDarkMode }) => {
         <ul className="nav-links">
           <li><a href="/#features">Features</a></li>
           <li><a href="/#pricing">Pricing</a></li>
-          <li><Link to="/dashboard">Dashboard</Link></li>
+          <li><Link to="/auth">Dashboard</Link></li>
         </ul>
         <div className="nav-actions">
           <button className="btn btn-secondary nav-login" onClick={toggleDarkMode} style={{ padding: '0.5rem', borderRadius: '50%' }}>
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <Link to="/dashboard" className="btn btn-secondary nav-login">Log In</Link>
+          <Link to="/auth" className="btn btn-secondary nav-login">Log In</Link>
           <a href="/#pricing" className="btn btn-primary">Get Started</a>
         </div>
       </div>

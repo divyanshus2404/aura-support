@@ -10,6 +10,7 @@ import Dashboard from './components/Dashboard';
 import Onboarding from './components/Onboarding';
 import Terms from './components/Terms';
 import Privacy from './components/Privacy';
+import Auth from './components/Auth';
 
 const LandingPage = () => (
   <>
@@ -41,6 +42,7 @@ function App() {
       <Navbar isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<Auth />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/terms" element={<><Terms /><Footer /><Chatbot /></>} />
