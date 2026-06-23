@@ -20,6 +20,10 @@ const Dashboard = () => {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
 
+  // Chat Logs State
+  const [chatLogs, setChatLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+
   useEffect(() => {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -34,6 +38,30 @@ const Dashboard = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchChatLogs = async () => {
+    if (!session) return;
+    setLogsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('chat_logs')
+        .select('*')
+        .eq('business_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+        
+      if (data) setChatLogs(data);
+    } catch (error) {
+      console.error('Error fetching logs:', error);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session && activeTab === 'knowledge') fetchFiles();
+    if (session && activeTab === 'chatlogs') fetchChatLogs();
+  }, [session, activeTab]);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -95,23 +123,12 @@ const Dashboard = () => {
     if (data) setFiles(data);
   };
 
-  useEffect(() => {
-    if (session && activeTab === 'knowledge') {
-      fetchFiles();
-    }
-  }, [session, activeTab]);
-
   // Mock data for UI
   const stats = [
-    { label: "Total Queries Handled", value: "1,248" },
+    { label: "Total Queries Handled", value: chatLogs.length || "1,248" },
     { label: "Sales Converted", value: "$4,290" },
     { label: "Active Plan", value: "Pro (Yearly)" },
     { label: "WhatsApp Status", value: "Connected", status: "good" }
-  ];
-
-  const mockChatLogs = [
-    { id: 1, user: "+1 (555) 019-2834", platform: "WhatsApp", intent: "Pricing Inquiry", time: "10 mins ago", status: "Resolved" },
-    { id: 2, user: "guest_8912@web", platform: "Website", intent: "Product Availability", time: "1 hour ago", status: "Resolved" },
   ];
 
   if (loading && !session) {
@@ -240,32 +257,48 @@ const Dashboard = () => {
 
         {activeTab === 'chatlogs' && (
           <div className="chatlogs-section glass-panel">
-            <div className="chatlogs-header">
+            <div className="chatlogs-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
               <h3>Recent Conversations</h3>
+              <button className="btn btn-secondary" onClick={fetchChatLogs} disabled={logsLoading}>
+                {logsLoading ? 'Refreshing...' : 'Refresh Logs'}
+              </button>
             </div>
             <table className="chatlogs-table">
               <thead>
                 <tr>
                   <th>User</th>
                   <th>Platform</th>
-                  <th>Intent</th>
+                  <th>Message Preview</th>
+                  <th>Time</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {mockChatLogs.map(log => (
-                  <tr key={log.id}>
-                    <td>{log.user}</td>
-                    <td><span className={`platform-badge ${log.platform.toLowerCase()}`}>{log.platform}</span></td>
-                    <td>{log.intent}</td>
-                    <td>
-                      <span className={`status-badge ${log.status === 'Resolved' ? 'success' : 'warning'}`}>{log.status}</span>
-                    </td>
-                  </tr>
-                ))}
+                {chatLogs.length === 0 ? (
+                  <tr><td colSpan="5" style={{textAlign: 'center', padding: '2rem'}}>No chat logs found for your agent yet.</td></tr>
+                ) : (
+                  chatLogs.map(log => {
+                    const firstMessage = log.message_history && log.message_history.length > 0 
+                      ? log.message_history[0].content 
+                      : 'No message content';
+                      
+                    return (
+                      <tr key={log.id}>
+                        <td>{log.customer_identifier}</td>
+                        <td><span className={`platform-badge ${log.platform.toLowerCase().replace(' ', '-')}`}>{log.platform}</span></td>
+                        <td style={{maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
+                          "{firstMessage}"
+                        </td>
+                        <td>{new Date(log.created_at).toLocaleDateString()} {new Date(log.created_at).toLocaleTimeString()}</td>
+                        <td>
+                          <span className={`status-badge success`}>Resolved</span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
-            <p className="mt-2" style={{fontSize:'0.8rem', color:'var(--text-secondary)'}}>* Logs are mocked until live traffic arrives.</p>
           </div>
         )}
 

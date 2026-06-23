@@ -278,12 +278,20 @@
       // Use the server URL configured in the script tag, or fallback to the current origin if not provided
       const apiEndpoint = `${serverUrl}/api/chat`.replace(/([^:]\/)\/+/g, "$1"); // prevent double slashes
       
+      // Generate a customer ID if one doesn't exist
+      let customerId = localStorage.getItem('aura_customer_id');
+      if (!customerId) {
+        customerId = 'guest_' + Math.floor(Math.random() * 100000);
+        localStorage.setItem('aura_customer_id', customerId);
+      }
+
       const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: text,
-          clientId: clientId // Send the business ID so backend knows whose data to use
+          clientId: clientId, // Send the business ID so backend knows whose data to use
+          customerIdentifier: customerId
         })
       });
       const data = await response.json();

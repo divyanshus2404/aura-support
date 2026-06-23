@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { message, clientId } = req.body;
+    const { message, clientId, customerIdentifier } = req.body;
     
     if (!process.env.GEMINI_API_KEY) {
       return res.status(200).json({ reply: "[Mock Backend] Gemini API Key is missing. Check Vercel Environment Variables." });
@@ -36,9 +36,7 @@ export default async function handler(req, res) {
             .download(`${clientId}/${fileName}`);
             
           if (fileBlob) {
-            // Convert Blob to text (works for TXT, CSV, basic PDFs won't be perfectly parsed this way but it's a solid start)
             extractedKnowledge = await fileBlob.text();
-            // Truncate to ensure we don't blow up the LLM token limit
             extractedKnowledge = extractedKnowledge.substring(0, 15000); 
           }
         }
@@ -65,6 +63,23 @@ export default async function handler(req, res) {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
+
+    // 4. Save Chat Log to Database
+    if (clientId && process.env.VITE_SUPABASE_URL) {
+      try {
+        await supabaseAdmin.from('chat_logs').insert([{
+          business_id: clientId,
+          customer_identifier: customerIdentifier || 'Anonymous User',
+          platform: 'Website Widget',
+          message_history: [
+            { role: 'user', content: message },
+            { role: 'bot', content: text }
+          ]
+        }]);
+      } catch (dbError) {
+        console.error("Failed to save chat log:", dbError.message);
+      }
+    }
 
     res.status(200).json({ reply: text });
   } catch (error) {

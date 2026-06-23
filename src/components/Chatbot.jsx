@@ -34,11 +34,22 @@ const Chatbot = () => {
     setIsTyping(true);
 
     try {
+      // Generate a demo customer ID
+      let customerId = localStorage.getItem('aura_demo_customer_id');
+      if (!customerId) {
+        customerId = 'demo_user_' + Math.floor(Math.random() * 10000);
+        localStorage.setItem('aura_demo_customer_id', customerId);
+      }
+
       // Try to call the real backend LLM (now a serverless function)
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, knowledgeBaseContext: "Pricing: $19/mo, $190/yr. WhatsApp is supported." })
+        body: JSON.stringify({ 
+          message: text, 
+          customerIdentifier: customerId,
+          knowledgeBaseContext: "Pricing: $19/mo, $190/yr. WhatsApp is supported." 
+        })
       });
       
       const data = await response.json();
