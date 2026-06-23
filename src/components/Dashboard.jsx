@@ -23,6 +23,9 @@ const Dashboard = () => {
   // Chat Logs State
   const [chatLogs, setChatLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  
+  // Profile State
+  const [businessProfile, setBusinessProfile] = useState(null);
 
   useEffect(() => {
     // Check active session
@@ -39,6 +42,20 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const fetchProfile = async () => {
+    if (!session) return;
+    try {
+      const { data, error } = await supabase
+        .from('business_profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      if (data) setBusinessProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
   const fetchChatLogs = async () => {
     if (!session) return;
     setLogsLoading(true);
@@ -47,8 +64,7 @@ const Dashboard = () => {
         .from('chat_logs')
         .select('*')
         .eq('business_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
+        .order('created_at', { ascending: false }); // Fetch all for stats, ideally paginate later
         
       if (data) setChatLogs(data);
     } catch (error) {
@@ -59,8 +75,11 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (session && activeTab === 'knowledge') fetchFiles();
-    if (session && activeTab === 'chatlogs') fetchChatLogs();
+    if (session) {
+      fetchProfile();
+      fetchChatLogs(); // Fetch on load so overview stats have data immediately
+      if (activeTab === 'knowledge') fetchFiles();
+    }
   }, [session, activeTab]);
 
   const handleAuth = async (e) => {
@@ -123,12 +142,16 @@ const Dashboard = () => {
     if (data) setFiles(data);
   };
 
-  // Mock data for UI
+  // Real Analytics Calculations
+  const uniqueCustomers = new Set(chatLogs.map(log => log.customer_identifier)).size;
+  const currentPlan = businessProfile?.subscription_tier === 'pro' ? 'Pro Plan' : 'Free Tier';
+  const waStatus = businessProfile?.whatsapp_token ? 'Connected' : 'Not Configured';
+
   const stats = [
-    { label: "Total Queries Handled", value: chatLogs.length || "1,248" },
-    { label: "Sales Converted", value: "$4,290" },
-    { label: "Active Plan", value: "Pro (Yearly)" },
-    { label: "WhatsApp Status", value: "Connected", status: "good" }
+    { label: "Total Queries Handled", value: chatLogs.length.toString() },
+    { label: "Unique Customers Helped", value: uniqueCustomers.toString() },
+    { label: "Active Plan", value: currentPlan, status: businessProfile?.subscription_tier === 'pro' ? 'good' : '' },
+    { label: "WhatsApp Status", value: waStatus, status: businessProfile?.whatsapp_token ? 'good' : '' }
   ];
 
   if (loading && !session) {
